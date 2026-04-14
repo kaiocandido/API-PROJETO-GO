@@ -2,11 +2,11 @@ package controllers
 
 import (
 	model "api/src/Model"
+	"api/src/answers"
 	"api/src/banco"
 	"api/src/repository"
 	"encoding/json"
 	"io/ioutil"
-	"log"
 	"net/http"
 )
 
@@ -15,22 +15,36 @@ func CriarUsuario(w http.ResponseWriter, r *http.Request) {
 	corpoRequest, err := ioutil.ReadAll(r.Body)
 
 	if err != nil {
-		log.Fatal(err)
+		answers.Erro(w, http.StatusUnprocessableEntity, err)
+		return
 	}
 
 	var usuario model.Usuario
 	if err = json.Unmarshal(corpoRequest, &usuario); err != nil {
-		log.Fatal(err)
+		answers.Erro(w, http.StatusBadRequest, err)
+		return
 	}
 
 	db, err := banco.Conectar()
 
 	if err != nil {
-		log.Fatal(err)
+		answers.Erro(w, http.StatusInternalServerError, err)
+		return
 	}
 
+	defer db.Close()
+
 	repositorio := repository.NovoRepositorioUsuarios(db)
-	repositorio.Criar(usuario)
+	usuarioId, err := repositorio.Criar(usuario)
+
+	if err != nil {
+		answers.Erro(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	usuario.ID = usuarioId
+
+	answers.JSON(w, http.StatusCreated, usuario)
 
 }
 
