@@ -8,6 +8,10 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"strconv"
+	"strings"
+
+	"github.com/gorilla/mux"
 )
 
 // CriarUsuario envia um usuario para o repository
@@ -21,6 +25,11 @@ func CriarUsuario(w http.ResponseWriter, r *http.Request) {
 
 	var usuario model.Usuario
 	if err = json.Unmarshal(corpoRequest, &usuario); err != nil {
+		answers.Erro(w, http.StatusBadRequest, err)
+		return
+	}
+
+	if err := usuario.Preparar("cadastro"); err != nil {
 		answers.Erro(w, http.StatusBadRequest, err)
 		return
 	}
@@ -50,20 +59,135 @@ func CriarUsuario(w http.ResponseWriter, r *http.Request) {
 
 // BuscarUsuario procura um usuario
 func BuscarUsuario(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Buscando usuario"))
+	nomeOuNick := strings.ToLower(r.URL.Query().Get("usuario"))
+
+	db, err := banco.Conectar()
+
+	if err != nil {
+		answers.Erro(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	defer db.Close()
+
+	repo := repository.NovoRepositorioUsuarios(db)
+
+	usuarios, err := repo.Buscar(nomeOuNick)
+
+	if err != nil {
+		answers.Erro(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	answers.JSON(w, http.StatusOK, usuarios)
 }
 
 // BuscarUsuarioPorId procura um usuario pelo ID unico
 func BuscarUsuarioPorId(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Buscando usuario por ID"))
+	parametros := mux.Vars(r)
+
+	usuarioId, err := strconv.ParseUint(parametros["usuarioId"], 10, 64)
+
+	if err != nil {
+		answers.Erro(w, http.StatusBadRequest, err)
+		return
+	}
+
+	db, err := banco.Conectar()
+
+	if err != nil {
+		answers.Erro(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	defer db.Close()
+	repo := repository.NovoRepositorioUsuarios(db)
+	usuario, err := repo.BuscarPorId(usuarioId)
+
+	if err != nil {
+		answers.Erro(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	answers.JSON(w, http.StatusOK, usuario)
 }
 
 // AtualizarUsuario faz a atualização atraves do ID do usuario
 func AtualizarUsuario(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Atualizando usuario"))
+	parametro := mux.Vars(r)
+	usuarioID, err := strconv.ParseUint(parametro["usuarioId"], 10, 64)
+
+	if err != nil {
+		answers.Erro(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	corpoReq, err := ioutil.ReadAll(r.Body)
+
+	if err != nil {
+		answers.Erro(w, http.StatusUnprocessableEntity, err)
+		return
+	}
+
+	var usuario model.Usuario
+
+	if err = json.Unmarshal(corpoReq, &usuario); err != nil {
+		answers.Erro(w, http.StatusUnprocessableEntity, err)
+		return
+	}
+
+	if err = usuario.Preparar("edicao"); err != nil {
+		answers.Erro(w, http.StatusUnprocessableEntity, err)
+		return
+	}
+
+	db, err := banco.Conectar()
+
+	if err != nil {
+		answers.Erro(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	defer db.Close()
+
+	repositorio := repository.NovoRepositorioUsuarios(db)
+
+	if err = repositorio.Atualizar(usuarioID, usuario); err != nil {
+		answers.Erro(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	answers.JSON(w, http.StatusNoContent, nil)
+
 }
 
 // DeletarUsuario exclui um usuario
 func DeletarUsuario(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Deletando usuario"))
+	parametros := mux.Vars(r)
+
+	usuarioId, err := strconv.ParseUint(parametros["usuarioID"], 10, 64)
+
+	if err != nil {
+		answers.Erro(w, http.StatusBadRequest, err)
+		return
+	}
+
+	db, err := banco.Conectar()
+
+	if err != nil {
+		answers.Erro(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	defer db.Close()
+
+	repositorio := repository.NovoRepositorioUsuarios(db)
+
+	if err = repositorio.Deletar(usuarioId); err != nil {
+		answers.Erro(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	answers.JSON(w, http.StatusNoContent, nil)
+
 }
