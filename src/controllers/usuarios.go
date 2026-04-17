@@ -1,11 +1,13 @@
 package controllers
 
 import (
+	autenticacao "api/src/Autenticacao"
 	model "api/src/Model"
 	"api/src/answers"
 	"api/src/banco"
 	"api/src/repository"
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -122,6 +124,18 @@ func AtualizarUsuario(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	usuarioIdToken, err := autenticacao.ExtrairUsuarioID(r)
+
+	if err != nil {
+		answers.Erro(w, http.StatusUnauthorized, err)
+		return
+	}
+
+	if usuarioID != usuarioIdToken {
+		answers.Erro(w, http.StatusForbidden, errors.New("não é permitido atualizar um usuario diferente do seu"))
+		return
+	}
+
 	corpoReq, err := ioutil.ReadAll(r.Body)
 
 	if err != nil {
@@ -169,6 +183,18 @@ func DeletarUsuario(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		answers.Erro(w, http.StatusBadRequest, err)
+		return
+	}
+
+	usuarioIdToken, err := autenticacao.ExtrairUsuarioID(r)
+
+	if err != nil {
+		answers.Erro(w, http.StatusUnauthorized, err)
+		return
+	}
+
+	if usuarioId != usuarioIdToken {
+		answers.Erro(w, http.StatusForbidden, errors.New("não é permitido deletar um usuario diferente do seu"))
 		return
 	}
 

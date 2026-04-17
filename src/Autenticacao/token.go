@@ -3,7 +3,9 @@ package autenticacao
 import (
 	"api/src/config"
 	"errors"
+	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -50,10 +52,33 @@ func extrairToken(r *http.Request) string {
 	return ""
 }
 
+// retornarChaveDeVerificacao Retorna a chave de verificação do token
 func retornarChaveDeVerificacao(token *jwt.Token) (interface{}, error) {
 	if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 		return nil, http.ErrAbortHandler
 	}
 
 	return config.Key, nil
+}
+
+// ExtrairUsuarioID Extrai o ID do usuário do token
+func ExtrairUsuarioID(r *http.Request) (uint64, error) {
+	tokenString := extrairToken(r)
+
+	token, erro := jwt.Parse(tokenString, retornarChaveDeVerificacao)
+	if erro != nil {
+		return 0, erro
+	}
+
+	if permissoes, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		usuarioId, err := strconv.ParseUint(fmt.Sprintf("%0.f", permissoes["usuarioId"]), 10, 64)
+		if err != nil {
+			return 0, err
+		}
+
+		return usuarioId, nil
+	}
+
+	return 0, errors.New("token inválido")
+
 }
