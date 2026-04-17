@@ -15,6 +15,9 @@ var (
 
 	// Porta indica a porta onde a aplicação vai rodar
 	Porta = 0
+
+	// Senha do JWT
+	Key []byte
 )
 
 // Carregar inicializa as variaveis de ambiente
@@ -35,5 +38,7 @@ func Carregar() {
 		os.Getenv("DB_PASSWORD"),
 		os.Getenv("DB_NOME"),
 	)
+
+	Key = []byte(os.Getenv("KEY"))
 
 }
