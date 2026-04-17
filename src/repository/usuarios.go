@@ -191,10 +191,78 @@ func (repositorio Usuarios) PararDeSeguirUsuario(usuarioId, seguidorId uint64) e
 		return err
 	}
 
+	defer statement.Close()
+
 	if _, err = statement.Exec(usuarioId, seguidorId); err != nil {
 		return err
 	}
 
 	return nil
 
+}
+
+// BuscarSeguidores traz os seguidores de um usuario
+func (repositorio Usuarios) BuscarSeguidores(usuarioId uint64) ([]model.Usuario, error) {
+	linhas, err := repositorio.db.Query(`
+	select u.id, u.nome, u.nick, u.email, u.criado from usuarios u
+	inner join seguidores s on u.id = s.seguidor_id where s.usuario_id = ?`,
+		usuarioId,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer linhas.Close()
+
+	var usuarios []model.Usuario
+
+	for linhas.Next() {
+		var usuario model.Usuario
+
+		if err = linhas.Scan(
+			&usuario.ID,
+			&usuario.Nome,
+			&usuario.Nick,
+			&usuario.Email,
+			&usuario.Criado,
+		); err != nil {
+			return nil, err
+		}
+		usuarios = append(usuarios, usuario)
+	}
+	return usuarios, nil
+}
+
+// BuscarSeguindo traz os usuarios que um usuario segue
+func (repositorio Usuarios) BuscarSeguindo(usuarioId uint64) ([]model.Usuario, error) {
+	linhas, err := repositorio.db.Query(`
+	select u.id, u.nome, u.nick, u.email, u.criado from usuarios u
+	inner join seguidores s on u.id = s.usuario_id where s.seguidor_id = ?`,
+		usuarioId,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer linhas.Close()
+
+	var usuarios []model.Usuario
+
+	for linhas.Next() {
+		var usuario model.Usuario
+
+		if err = linhas.Scan(
+			&usuario.ID,
+			&usuario.Nome,
+			&usuario.Nick,
+			&usuario.Email,
+			&usuario.Criado,
+		); err != nil {
+			return nil, err
+		}
+		usuarios = append(usuarios, usuario)
+	}
+	return usuarios, nil
 }

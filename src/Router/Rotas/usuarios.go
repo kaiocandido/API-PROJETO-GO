@@ -48,4 +48,16 @@ var rotasUsuarios = []Rota{
 		Func:       controllers.PararDeSeguirUsuario,
 		RequerAuth: true,
 	},
+	{
+		URI:        "/usuarios/{usuarioId}/seguidores",
+		Metodo:     http.MethodGet,
+		Func:       controllers.BuscarSeguidores,
+		RequerAuth: true,
+	},
+	{
+		URI:        "/usuarios/{usuarioId}/seguindo",
+		Metodo:     http.MethodGet,
+		Func:       controllers.BuscarSeguindo,
+		RequerAuth: true,
+	},
 }
