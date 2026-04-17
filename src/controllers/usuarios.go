@@ -217,3 +217,89 @@ func DeletarUsuario(w http.ResponseWriter, r *http.Request) {
 	answers.JSON(w, http.StatusNoContent, nil)
 
 }
+
+// SeguirUsuario permite que um usuario siga outro usuario
+func SeguirUsuario(w http.ResponseWriter, r *http.Request) {
+	seguidorId, err := autenticacao.ExtrairUsuarioID(r)
+
+	if err != nil {
+		answers.Erro(w, http.StatusUnauthorized, err)
+		return
+	}
+
+	parametros := mux.Vars(r)
+
+	usuarioId, err := strconv.ParseUint(parametros["usuarioId"], 10, 64)
+
+	if err != nil {
+		answers.Erro(w, http.StatusBadRequest, err)
+		return
+	}
+
+	if seguidorId == usuarioId {
+		answers.Erro(w, http.StatusForbidden, errors.New("não é permitido seguir você mesmo"))
+		return
+	}
+
+	db, err := banco.Conectar()
+
+	if err != nil {
+		answers.Erro(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	defer db.Close()
+
+	repositorio := repository.NovoRepositorioUsuarios(db)
+
+	if err = repositorio.Seguir(usuarioId, seguidorId); err != nil {
+		answers.Erro(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	answers.JSON(w, http.StatusNoContent, nil)
+
+}
+
+// PararDeSeguirUsuario permite que um usuario deixe de seguir outro usuario
+func PararDeSeguirUsuario(w http.ResponseWriter, r *http.Request) {
+	seguidorId, err := autenticacao.ExtrairUsuarioID(r)
+
+	if err != nil {
+		answers.Erro(w, http.StatusUnauthorized, err)
+		return
+	}
+
+	parametros := mux.Vars(r)
+
+	usuarioId, err := strconv.ParseUint(parametros["usuarioId"], 10, 64)
+
+	if err != nil {
+		answers.Erro(w, http.StatusBadRequest, err)
+		return
+	}
+
+	if usuarioId == seguidorId {
+		answers.Erro(w, http.StatusForbidden, errors.New("não é permitido deixar de seguir você mesmo"))
+		return
+	}
+
+	db, err := banco.Conectar()
+
+	if err != nil {
+		answers.Erro(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	defer db.Close()
+
+	repositorio := repository.NovoRepositorioUsuarios(db)
+
+	if err = repositorio.PararDeSeguirUsuario(usuarioId, seguidorId); err != nil {
+		answers.Erro(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	answers.JSON(w, http.StatusNoContent, nil)
+
+}
