@@ -60,4 +60,10 @@ var rotasUsuarios = []Rota{
 		Func:       controllers.BuscarSeguindo,
 		RequerAuth: true,
 	},
+	{
+		URI:        "/usuarios/{usuarioId}/atualizar-senha",
+		Metodo:     http.MethodPost,
+		Func:       controllers.AtualizarSenha,
+		RequerAuth: true,
+	},
 }
