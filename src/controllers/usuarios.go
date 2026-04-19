@@ -372,74 +372,70 @@ func BuscarSeguindo(w http.ResponseWriter, r *http.Request) {
 // AtualizarSenha permite que um usuario atualize sua senha
 func AtualizarSenha(w http.ResponseWriter, r *http.Request) {
 	usuarioIdToken, err := autenticacao.ExtrairUsuarioID(r)
-
 	if err != nil {
 		answers.Erro(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	parametros := mux.Vars(r)
-
 	usuarioId, err := strconv.ParseUint(parametros["usuarioId"], 10, 64)
-
 	if err != nil {
 		answers.Erro(w, http.StatusBadRequest, err)
 		return
 	}
 
 	if usuarioId != usuarioIdToken {
-		answers.Erro(w, http.StatusForbidden, errors.New("não é permitido atualizar a senha de outro usuario"))
+		answers.Erro(w, http.StatusForbidden, errors.New("não é permitido atualizar a senha de outro usuário"))
+		return
 	}
 
 	corpoReq, err := ioutil.ReadAll(r.Body)
-
 	if err != nil {
 		answers.Erro(w, http.StatusServiceUnavailable, err)
 		return
 	}
 
 	var senha model.Senha
-
 	if err = json.Unmarshal(corpoReq, &senha); err != nil {
 		answers.Erro(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	db, err := banco.Conectar()
-
 	if err != nil {
 		answers.Erro(w, http.StatusInternalServerError, err)
 		return
 	}
-
 	defer db.Close()
 
 	repositorio := repository.NovoRepositorioUsuarios(db)
 
+	// Busca a senha salva no banco de dados
 	senhaSalvaNoBanco, err := repositorio.BuscarSenha(usuarioId)
-
 	if err != nil {
 		answers.Erro(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	if err = security.VerificarSenha(senhaSalvaNoBanco, senha.SenhaAtual); err != nil {
-		answers.Erro(w, http.StatusUnauthorized, err)
+	// Verifica se a senha atual fornecida corresponde à senha salva no banco
+	if err = security.VerificarSenha(senha.Atual, senhaSalvaNoBanco); err != nil {
+		answers.Erro(w, http.StatusUnauthorized, errors.New("senha incorreta"))
 		return
 	}
 
-	senhaHash, err := security.Hash(senha.NovaSenha)
-
+	// Gera o hash da nova senha
+	senhaHash, err := security.Hash(senha.Nova)
 	if err != nil {
 		answers.Erro(w, http.StatusBadRequest, err)
 		return
 	}
 
+	// Atualiza a senha no banco de dados
 	if err = repositorio.AlterarSenha(usuarioId, string(senhaHash)); err != nil {
 		answers.Erro(w, http.StatusInternalServerError, err)
 		return
 	}
 
+	// Retorna uma resposta de sucesso
 	answers.JSON(w, http.StatusOK, nil)
-
 }
