@@ -269,7 +269,7 @@ func (repositorio Usuarios) BuscarSeguindo(usuarioId uint64) ([]model.Usuario, e
 
 // BuscarSenha tras a senha de um usuario
 func (repositorio Usuarios) BuscarSenha(usuarioId uint64) (string, error) {
-	linha, err := repositorio.db.Query("select senha from usuarios where id = ?")
+	linha, err := repositorio.db.Query("select senha from usuarios where id = ?", usuarioId)
 
 	if err != nil {
 		return "", err
