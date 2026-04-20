@@ -70,6 +70,32 @@ func CriarPublicacao(w http.ResponseWriter, r *http.Request) {
 
 // BuscarPublicacoes é a função responsável por buscar todas as publicações.
 func BuscarPublicacoes(w http.ResponseWriter, r *http.Request) {
+	usuarioId, err := autenticacao.ExtrairUsuarioID(r)
+
+	if err != nil {
+		answers.Erro(w, http.StatusUnauthorized, err)
+		return
+	}
+
+	db, err := banco.Conectar()
+
+	if err != nil {
+		answers.Erro(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	defer db.Close()
+
+	repositorio := repository.NovoRepositorioPublicacoes(db)
+
+	publicacoes, err := repositorio.Buscar(usuarioId)
+
+	if err != nil {
+		answers.Erro(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	answers.JSON(w, http.StatusOK, publicacoes)
 
 }
 
