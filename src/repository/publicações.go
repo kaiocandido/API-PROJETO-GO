@@ -40,3 +40,34 @@ func (repositorio Publicacoes) Criar(publicacao model.Publicacao) (uint64, error
 	return uint64(ultimoIDInserido), nil
 
 }
+
+// BuscarPorId é a função responsável por buscar uma publicação específica pelo ID.
+func (repositorio Publicacoes) BuscarPorId(PublicacoesId uint64) (model.Publicacao, error) {
+	linha, err := repositorio.db.Query(`
+		select p.*, u.nick from publicacoes p inner join usuarios u on u.id = p.autor_id where p.id= ?
+	`, PublicacoesId)
+
+	if err != nil {
+		return model.Publicacao{}, err
+	}
+
+	defer linha.Close()
+
+	var publicacao model.Publicacao
+
+	if linha.Next() {
+		if err = linha.Scan(
+			&publicacao.ID,
+			&publicacao.Titulo,
+			&publicacao.Conteudo,
+			&publicacao.AutorID,
+			&publicacao.Curtidas,
+			&publicacao.CriadaEm,
+			&publicacao.AutorNick,
+		); err != nil {
+			return model.Publicacao{}, err
+		}
+	}
+
+	return publicacao, nil
+}

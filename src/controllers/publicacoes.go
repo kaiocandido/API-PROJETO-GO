@@ -9,6 +9,9 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"strconv"
+
+	"github.com/gorilla/mux"
 )
 
 // CriarPublicacao é a função responsável por criar uma nova publicação.
@@ -72,6 +75,35 @@ func BuscarPublicacoes(w http.ResponseWriter, r *http.Request) {
 
 // BuscarPublicacaoPorId é a função responsável por buscar uma publicação específica pelo ID.
 func BuscarPublicacaoPorId(w http.ResponseWriter, r *http.Request) {
+	parametros := mux.Vars(r)
+
+	publicacaoID, err := strconv.ParseUint(parametros["publicacaoId"], 10, 64)
+
+	if err != nil {
+		answers.Erro(w, http.StatusBadRequest, err)
+		return
+	}
+
+	db, err := banco.Conectar()
+
+	if err != nil {
+		answers.Erro(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	defer db.Close()
+
+	repositorio := repository.NovoRepositorioPublicacoes(db)
+
+	publicacao, err := repositorio.BuscarPorId(publicacaoID)
+
+	if err != nil {
+		answers.Erro(w, http.StatusBadRequest, err)
+		return
+	}
+
+	answers.JSON(w, http.StatusOK, publicacao)
+
 }
 
 // DeletarPublicacao é a função responsável por deletar uma publicação específica pelo ID.
