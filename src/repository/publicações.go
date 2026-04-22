@@ -148,3 +148,72 @@ func (repositorio Publicacoes) Deletar(publicacaoId uint64) error {
 
 	return nil
 }
+
+// BuscarTodasPublicacoesPorUsuario é a função responsável por buscar todas as publicações de um usuário específico.
+func (repositorio Publicacoes) BuscarTodasPublicacoesPorUsuario(usuarioId uint64) ([]model.Publicacao, error) {
+	linhas, err := repositorio.db.Query(`select p.*, u.nick from publicacoes p join usuarios u on u.id = p.autor_id
+	where p.autor_id = ?`,
+		usuarioId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer linhas.Close()
+
+	var publicacoes []model.Publicacao
+
+	for linhas.Next() {
+		var publicacao model.Publicacao
+
+		if err = linhas.Scan(
+			&publicacao.ID,
+			&publicacao.Titulo,
+			&publicacao.Conteudo,
+			&publicacao.AutorID,
+			&publicacao.Curtidas,
+			&publicacao.CriadaEm,
+			&publicacao.AutorNick,
+		); err != nil {
+			return nil, err
+		}
+		publicacoes = append(publicacoes, publicacao)
+	}
+
+	return publicacoes, nil
+}
+
+// CurtirPublicacao é a função responsável por adicionar um like à publicação de um usuário.
+func (repositorio Publicacoes) CurtirPublicacao(publicacaoId uint64) error {
+	statement, err := repositorio.db.Prepare(`update publicacoes set curtidas = curtidas + 1 where id = ?`)
+
+	if err != nil {
+		return err
+	}
+
+	defer statement.Close()
+
+	if _, err = statement.Exec(publicacaoId); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// DeslikePublicacao remove uma curtida de uma publicacao especifica
+func (repositorio Publicacoes) DeslikePublicacao(publicacaoId uint64) error {
+	statement, err := repositorio.db.Prepare(`update publicacoes set curtidas =
+	CASE WHEN curtidas > 0 THEN curtidas - 1 ELSE 0 END where id = ?`)
+
+	if err != nil {
+		return err
+	}
+
+	defer statement.Close()
+
+	if _, err = statement.Exec(publicacaoId); err != nil {
+		return err
+	}
+
+	return nil
+}

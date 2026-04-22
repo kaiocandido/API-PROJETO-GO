@@ -249,3 +249,96 @@ func AtualizarPublicacao(w http.ResponseWriter, r *http.Request) {
 
 	answers.JSON(w, http.StatusOK, nil)
 }
+
+// BuscarTodasPublicacoesPorUsuario é a função responsável por buscar todas as publicações de um usuário específico pelo ID do usuário.
+func BuscarTodasPublicacoesPorUsuario(w http.ResponseWriter, r *http.Request) {
+	parametros := mux.Vars(r)
+
+	usuarioId, err := strconv.ParseUint(parametros["usuarioId"], 10, 64)
+
+	if err != nil {
+		answers.Erro(w, http.StatusBadRequest, err)
+		return
+	}
+
+	db, err := banco.Conectar()
+
+	if err != nil {
+		answers.Erro(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	defer db.Close()
+
+	repositorio := repository.NovoRepositorioPublicacoes(db)
+
+	publicacoes, err := repositorio.BuscarTodasPublicacoesPorUsuario(usuarioId)
+
+	if err != nil {
+		answers.Erro(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	answers.JSON(w, http.StatusOK, publicacoes)
+
+}
+
+// CurtirPublicacao adiciona um like à publicação de um usuário
+func CurtirPublicacao(w http.ResponseWriter, r *http.Request) {
+	parametros := mux.Vars(r)
+
+	publicacaoId, err := strconv.ParseUint(parametros["publicacaoId"], 10, 64)
+
+	if err != nil {
+		answers.Erro(w, http.StatusBadRequest, err)
+		return
+	}
+
+	db, err := banco.Conectar()
+
+	if err != nil {
+		answers.Erro(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	defer db.Close()
+
+	repositorio := repository.NovoRepositorioPublicacoes(db)
+
+	if err = repositorio.CurtirPublicacao(publicacaoId); err != nil {
+		answers.Erro(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	answers.JSON(w, http.StatusOK, nil)
+}
+
+func DeslikePublicacao(w http.ResponseWriter, r *http.Request) {
+	parametros := mux.Vars(r)
+
+	publicacaoId, err := strconv.ParseUint(parametros["publicacaoId"], 10, 64)
+
+	if err != nil {
+		answers.Erro(w, http.StatusBadRequest, err)
+		return
+	}
+
+	db, err := banco.Conectar()
+
+	if err != nil {
+		answers.Erro(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	defer db.Close()
+
+	repositorio := repository.NovoRepositorioPublicacoes(db)
+
+	if err = repositorio.DeslikePublicacao(publicacaoId); err != nil {
+		answers.Erro(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	answers.JSON(w, http.StatusOK, nil)
+
+}
