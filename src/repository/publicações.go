@@ -112,3 +112,39 @@ func (repositorio Publicacoes) Buscar(usuarioID uint64) ([]model.Publicacao, err
 	return publicacoes, nil
 
 }
+
+// Atualizar é a função responsável por atualizar uma publicação específica pelo ID.
+func (repositorio Publicacoes) Atualizar(publicacaoId uint64, publicacao model.Publicacao) error {
+	statement, err := repositorio.db.Prepare("update publicacoes set titulo = ?, conteudo = ? where id = ?")
+
+	if err != nil {
+		return err
+	}
+
+	defer statement.Close()
+
+	_, err = statement.Exec(publicacao.Titulo, publicacao.Conteudo, publicacaoId)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Deletar é a função responsável por deletar uma publicação específica pelo ID.
+func (repositorio Publicacoes) Deletar(publicacaoId uint64) error {
+	statement, err := repositorio.db.Prepare(`delete from publicacoes where id = ?`)
+
+	if err != nil {
+		return err
+	}
+
+	defer statement.Close()
+
+	if _, err = statement.Exec(publicacaoId); err != nil {
+		return err
+	}
+
+	return nil
+}

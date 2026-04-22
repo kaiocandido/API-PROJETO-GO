@@ -7,6 +7,7 @@ import (
 	"api/src/banco"
 	"api/src/repository"
 	"encoding/json"
+	"errors"
 	"io"
 	"net/http"
 	"strconv"
@@ -134,8 +135,117 @@ func BuscarPublicacaoPorId(w http.ResponseWriter, r *http.Request) {
 
 // DeletarPublicacao é a função responsável por deletar uma publicação específica pelo ID.
 func DeletarPublicacao(w http.ResponseWriter, r *http.Request) {
+	usuarioId, err := autenticacao.ExtrairUsuarioID(r)
+
+	if err != nil {
+		answers.Erro(w, http.StatusUnauthorized, err)
+		return
+	}
+
+	parametros := mux.Vars(r)
+
+	publicacaoId, err := strconv.ParseUint(parametros["publicacaoId"], 10, 64)
+
+	if err != nil {
+		answers.Erro(w, http.StatusBadRequest, err)
+		return
+	}
+
+	db, err := banco.Conectar()
+
+	if err != nil {
+		answers.Erro(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	defer db.Close()
+
+	repositorio := repository.NovoRepositorioPublicacoes(db)
+
+	publicacaoSalva, err := repositorio.BuscarPorId(publicacaoId)
+
+	if err != nil {
+		answers.Erro(w, http.StatusBadRequest, err)
+		return
+	}
+
+	if publicacaoSalva.AutorID != usuarioId {
+		answers.Erro(w, http.StatusForbidden, errors.New("você não tem permissão para deletar esta publicação"))
+		return
+	}
+
+	if err = repositorio.Deletar(publicacaoId); err != nil {
+		answers.Erro(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	answers.JSON(w, http.StatusNoContent, nil)
 }
 
 // AtualizarPublicacao é a função responsável por atualizar uma publicação específica pelo ID.
 func AtualizarPublicacao(w http.ResponseWriter, r *http.Request) {
+	usuarioId, err := autenticacao.ExtrairUsuarioID(r)
+
+	if err != nil {
+		answers.Erro(w, http.StatusUnauthorized, err)
+		return
+	}
+
+	parametros := mux.Vars(r)
+
+	publicacaoID, err := strconv.ParseUint(parametros["publicacaoId"], 10, 64)
+
+	if err != nil {
+		answers.Erro(w, http.StatusBadRequest, err)
+		return
+	}
+
+	db, err := banco.Conectar()
+
+	if err != nil {
+		answers.Erro(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	defer db.Close()
+
+	repositorio := repository.NovoRepositorioPublicacoes(db)
+
+	publicacaoSalva, err := repositorio.BuscarPorId(publicacaoID)
+
+	if err != nil {
+		answers.Erro(w, http.StatusBadRequest, err)
+		return
+	}
+
+	if publicacaoSalva.AutorID != usuarioId {
+		answers.Erro(w, http.StatusForbidden, err)
+		return
+	}
+
+	corpoReq, err := io.ReadAll(r.Body)
+
+	if err != nil {
+		answers.Erro(w, http.StatusBadRequest, err)
+		return
+	}
+
+	var publicacao model.Publicacao
+
+	if err = json.Unmarshal(corpoReq, &publicacao); err != nil {
+		answers.Erro(w, http.StatusBadRequest, err)
+		return
+	}
+
+	if err = publicacao.Preparar(); err != nil {
+		answers.Erro(w, http.StatusBadRequest, err)
+		return
+	}
+
+	if err = repositorio.Atualizar(publicacaoID, publicacao); err != nil {
+		answers.Erro(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	answers.JSON(w, http.StatusOK, nil)
 }
