@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/gorilla/handlers"
 )
 
 func main() {
@@ -14,6 +16,12 @@ func main() {
 
 	r := router.Gerar()
 
-	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", config.Porta), r))
+	headersOk := handlers.AllowedHeaders([]string{"Content-Type", "Authorization"})
+	methodsOk := handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"})
+	originsOk := handlers.AllowedOrigins([]string{"http://localhost:3000", "http://localhost:5173"})
 
+	log.Fatal(http.ListenAndServe(
+		fmt.Sprintf(":%d", config.Porta),
+		handlers.CORS(headersOk, methodsOk, originsOk)(r),
+	))
 }

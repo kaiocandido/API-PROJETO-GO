@@ -9,8 +9,8 @@ insert into usuarios (nome, nick, email, senha) values
 
 
 insert into seguidores (usuario_id, seguidor_id) values
-(1, 4);
+(1, 2);
 insert into seguidores (usuario_id, seguidor_id) values
-(1, 5);
+(1, 3);
 insert into seguidores (usuario_id, seguidor_id) values
-(4, 1);
+(2, 3);

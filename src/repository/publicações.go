@@ -3,6 +3,7 @@ package repository
 import (
 	model "api/src/Model"
 	"database/sql"
+	"fmt"
 )
 
 // RepositorioPublicacoes representa um repositorio de publicações
@@ -42,31 +43,35 @@ func (repositorio Publicacoes) Criar(publicacao model.Publicacao) (uint64, error
 }
 
 // BuscarPorId é a função responsável por buscar uma publicação específica pelo ID.
-func (repositorio Publicacoes) BuscarPorId(PublicacoesId uint64) (model.Publicacao, error) {
-	linha, err := repositorio.db.Query(`
-		select p.*, u.nick from publicacoes p inner join usuarios u on u.id = p.autor_id where p.id= ?
-	`, PublicacoesId)
-
-	if err != nil {
-		return model.Publicacao{}, err
-	}
-
-	defer linha.Close()
+func (repositorio Publicacoes) BuscarPorId(publicacaoID uint64) (model.Publicacao, error) {
+	linha := repositorio.db.QueryRow(`
+		SELECT 
+			p.id,
+			p.titulo,
+			p.conteudo,
+			p.autor_id,
+			p.curtidas,
+			p.criadaEm,
+			u.nome,
+			u.nick
+		FROM publicacoes p
+		INNER JOIN usuarios u ON u.id = p.autor_id
+		WHERE p.id = ?
+	`, publicacaoID)
 
 	var publicacao model.Publicacao
 
-	if linha.Next() {
-		if err = linha.Scan(
-			&publicacao.ID,
-			&publicacao.Titulo,
-			&publicacao.Conteudo,
-			&publicacao.AutorID,
-			&publicacao.Curtidas,
-			&publicacao.CriadaEm,
-			&publicacao.AutorNick,
-		); err != nil {
-			return model.Publicacao{}, err
-		}
+	if err := linha.Scan(
+		&publicacao.ID,
+		&publicacao.Titulo,
+		&publicacao.Conteudo,
+		&publicacao.AutorID,
+		&publicacao.Curtidas,
+		&publicacao.CriadaEm,
+		&publicacao.AutorNome,
+		&publicacao.AutorNick,
+	); err != nil {
+		return model.Publicacao{}, err
 	}
 
 	return publicacao, nil
@@ -74,62 +79,52 @@ func (repositorio Publicacoes) BuscarPorId(PublicacoesId uint64) (model.Publicac
 
 // Buscar é a função responsável por buscar todas as publicações de um usuário específico.
 func (repositorio Publicacoes) Buscar(usuarioID uint64) ([]model.Publicacao, error) {
-	linha, err := repositorio.db.Query(`
-		select distinct p.*, u.nick
-		from publicacoes p
-		inner join usuarios u on u.id = p.autor_id
-		inner join seguidores s on p.autor_id = s.usuario_id
-		where u.id = ? or s.seguidor_id = ? order by 1 desc
+	linhas, err := repositorio.db.Query(`
+		SELECT DISTINCT 
+			p.id,
+			p.titulo,
+			p.conteudo,
+			p.autor_id,
+			p.curtidas,
+			p.criadaEm,
+			COALESCE(u.nome, ''),
+			COALESCE(u.nick, '')
+		FROM publicacoes p
+		INNER JOIN usuarios u ON u.id = p.autor_id
+		LEFT JOIN seguidores s ON p.autor_id = s.usuario_id
+		WHERE p.autor_id = ? OR s.seguidor_id = ?
+		ORDER BY p.id DESC
 	`, usuarioID, usuarioID)
 
 	if err != nil {
+		fmt.Println("ERRO SQL:", err)
 		return nil, err
 	}
-
-	defer linha.Close()
+	defer linhas.Close()
 
 	var publicacoes []model.Publicacao
 
-	for linha.Next() {
+	for linhas.Next() {
 		var publicacao model.Publicacao
 
-		if err = linha.Scan(
+		if err = linhas.Scan(
 			&publicacao.ID,
 			&publicacao.Titulo,
 			&publicacao.Conteudo,
 			&publicacao.AutorID,
 			&publicacao.Curtidas,
 			&publicacao.CriadaEm,
+			&publicacao.AutorNome,
 			&publicacao.AutorNick,
 		); err != nil {
+			fmt.Println("ERRO SCAN:", err)
 			return nil, err
 		}
 
 		publicacoes = append(publicacoes, publicacao)
-
 	}
 
 	return publicacoes, nil
-
-}
-
-// Atualizar é a função responsável por atualizar uma publicação específica pelo ID.
-func (repositorio Publicacoes) Atualizar(publicacaoId uint64, publicacao model.Publicacao) error {
-	statement, err := repositorio.db.Prepare("update publicacoes set titulo = ?, conteudo = ? where id = ?")
-
-	if err != nil {
-		return err
-	}
-
-	defer statement.Close()
-
-	_, err = statement.Exec(publicacao.Titulo, publicacao.Conteudo, publicacaoId)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // Deletar é a função responsável por deletar uma publicação específica pelo ID.
@@ -212,6 +207,25 @@ func (repositorio Publicacoes) DeslikePublicacao(publicacaoId uint64) error {
 	defer statement.Close()
 
 	if _, err = statement.Exec(publicacaoId); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Atualizar é a função responsável por atualizar uma publicação específica pelo ID.
+func (repositorio Publicacoes) Atualizar(publicacaoId uint64, publicacao model.Publicacao) error {
+	statement, err := repositorio.db.Prepare("update publicacoes set titulo = ?, conteudo = ? where id = ?")
+
+	if err != nil {
+		return err
+	}
+
+	defer statement.Close()
+
+	_, err = statement.Exec(publicacao.Titulo, publicacao.Conteudo, publicacaoId)
+
+	if err != nil {
 		return err
 	}
 

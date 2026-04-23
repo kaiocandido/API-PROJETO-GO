@@ -8,13 +8,12 @@ import (
 	"api/src/repository"
 	"api/src/security"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
-// Login é a função responsável por lidar com as requisições de login
 func Login(w http.ResponseWriter, r *http.Request) {
-	corpoReq, err := ioutil.ReadAll(r.Body)
+	corpoReq, err := io.ReadAll(r.Body)
 	if err != nil {
 		answers.Erro(w, http.StatusUnprocessableEntity, err)
 		return
@@ -32,7 +31,6 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		answers.Erro(w, http.StatusInternalServerError, err)
 		return
 	}
-
 	defer db.Close()
 
 	repositorio := repository.NovoRepositorioUsuarios(db)
@@ -54,5 +52,7 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write([]byte(token))
+	answers.JSON(w, http.StatusOK, map[string]string{
+		"token": token,
+	})
 }

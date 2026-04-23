@@ -12,9 +12,10 @@ type Publicacao struct {
 	Titulo    string    `json:"titulo,omitempty"`
 	Conteudo  string    `json:"conteudo,omitempty"`
 	AutorID   uint64    `json:"autorId,omitempty"`
-	AutorNick string    `json:"autorNick,omitempty"`
-	Curtidas  uint64    `json:"curtidas"`
+	Curtidas  uint64    `json:"curtidas,omitempty"`
 	CriadaEm  time.Time `json:"criadaEm,omitempty"`
+	AutorNick string    `json:"autorNick,omitempty"`
+	AutorNome string    `json:"autorNome,omitempty"`
 }
 
 // Preparar é a função responsável por preparar os dados da publicação, validando e formatando os campos antes de serem armazenados no banco de dados.

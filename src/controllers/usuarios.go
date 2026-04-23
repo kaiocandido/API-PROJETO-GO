@@ -89,24 +89,22 @@ func BuscarUsuario(w http.ResponseWriter, r *http.Request) {
 func BuscarUsuarioPorId(w http.ResponseWriter, r *http.Request) {
 	parametros := mux.Vars(r)
 
-	usuarioId, err := strconv.ParseUint(parametros["usuarioId"], 10, 64)
-
+	usuarioId, err := strconv.ParseUint(parametros["id"], 10, 64)
 	if err != nil {
 		answers.Erro(w, http.StatusBadRequest, err)
 		return
 	}
 
 	db, err := banco.Conectar()
-
 	if err != nil {
 		answers.Erro(w, http.StatusInternalServerError, err)
 		return
 	}
-
 	defer db.Close()
-	repo := repository.NovoRepositorioUsuarios(db)
-	usuario, err := repo.BuscarPorId(usuarioId)
 
+	repositorio := repository.NovoRepositorioUsuarios(db)
+
+	usuario, err := repositorio.BuscarPorId(usuarioId)
 	if err != nil {
 		answers.Erro(w, http.StatusInternalServerError, err)
 		return
