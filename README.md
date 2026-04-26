@@ -180,7 +180,3 @@ go run main.go
 * Paginação
 
 ---
-
-## 👨‍💻 Autor
-
-Desenvolvido por você 🚀
